@@ -6,16 +6,17 @@ import (
 )
 
 func SetupRoutes(router *gin.Engine, fileCtrl *controllers.FileController) {
-	api := router.Group("/api/v1")
+	// Professional Deployment Namespace: /api/file/v1
+	apiFile := router.Group("/api/file/v1")
 	{
-		files := api.Group("/files")
+		files := apiFile.Group("/files")
 		{
 			files.POST("/upload", fileCtrl.Upload)
-			files.GET("/:bucket/*key", fileCtrl.Download) // Using wildcard for deep paths
+			files.GET("/:bucket/*key", fileCtrl.Download) // Deep path support for clinical silos
 			files.GET("/preview/:bucket/*key", fileCtrl.GetPreview)
 			files.DELETE("/:bucket/*key", fileCtrl.Delete)
 		}
 
-		api.GET("/buckets", fileCtrl.ListBuckets)
+		apiFile.GET("/buckets", fileCtrl.ListBuckets)
 	}
 }

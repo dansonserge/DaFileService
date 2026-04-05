@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dansonserge/DaFileService/services"
@@ -34,8 +35,11 @@ func (ctrl *FileController) Upload(c *gin.Context) {
 
 	bucket := c.DefaultPostForm("bucket", ctrl.defaultBucket)
 
-	// Create unique object name
-	objectName := uuid.New().String() + "-" + file.Filename
+	// Create unique object name - allow override from form
+	objectName := c.PostForm("object_name")
+	if objectName == "" {
+		objectName = uuid.New().String() + "-" + file.Filename
+	}
 
 	fileContent, err := file.Open()
 	if err != nil {
@@ -77,8 +81,17 @@ func (ctrl *FileController) Download(c *gin.Context) {
 	}
 	defer reader.Close()
 
-	c.Header("Content-Disposition", "attachment; filename="+key)
-	c.Header("Content-Type", info.ContentType)
+	contentType := info.ContentType
+	if strings.HasSuffix(strings.ToLower(key), ".pdf") {
+		contentType = "application/pdf"
+	}
+
+	if contentType == "application/pdf" {
+		c.Header("Content-Disposition", "inline")
+	} else {
+		c.Header("Content-Disposition", "inline; filename=\""+key+"\"")
+	}
+	c.Header("Content-Type", contentType)
 	c.Header("Content-Length", strconv.FormatInt(info.Size, 10))
 
 	http.ServeContent(c.Writer, c.Request, key, info.LastModified, reader.(io.ReadSeeker))
