@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/dansonserge/DaFileService/config"
 	"github.com/dansonserge/DaFileService/controllers"
+	"github.com/dansonserge/DaFileService/middlewares"
 	"github.com/dansonserge/DaFileService/routes"
 	"github.com/dansonserge/DaFileService/services"
 )
@@ -40,6 +41,7 @@ func main() {
 	// Global Middleware
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(middlewares.CORSMiddleware())
 
 	// Register Organizational Routes
 	routes.SetupRoutes(router, fileCtrl)
