@@ -1,50 +1,39 @@
+FROM golang:1.24-alpine AS base
+
+WORKDIR /app
+ENV GOTOOLCHAIN=auto
+RUN apk add --no-cache git curl
+
 # -------------------------------
 # Stage 1: Development Build
 # -------------------------------
-FROM golang:alpine AS dev
+FROM base AS dev
 
-WORKDIR /app
-
-# Install necessary tools
-RUN apk add --no-cache git curl
-
-# Set GOBIN for cleaner binary installs
-ENV GOBIN=/usr/local/bin
-
-# Install Air for hot reloading
 RUN go install github.com/air-verse/air@v1.52.3
 
-# Copy go mod files and download dependencies
 COPY go.mod go.sum* ./
-RUN go mod download || true
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
 
-# Copy the rest of the source code
 COPY . .
 
-# Set Air as default command
 CMD ["air"]
 
 # -------------------------------
 # Stage 2: Builder Stage
 # -------------------------------
-FROM golang:alpine AS builder
+FROM base AS builder
 
-# Build settings for static binary
-ENV CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64
-
-WORKDIR /app
-
-RUN apk add --no-cache git curl
+ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 
 COPY go.mod go.sum* ./
-RUN go mod download || true
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
 
 COPY . .
 
-# Build the application binary
-RUN go build -o file-service ./cmd/main.go
+# Build the application binary with caching
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go build -o file-service ./cmd/main.go
 
 # -------------------------------
 # Stage 3: Production Image

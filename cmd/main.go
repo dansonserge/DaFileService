@@ -19,6 +19,18 @@ func main() {
 		log.Fatalf("Critical Hub Initialization Failure: %v", err)
 	}
 
+	// Initialize Services
+	pdfSvc := services.NewPDFService(minioSvc)
+
+	// Start Background NATS Listener for Marketplace Events
+	listener, err := services.NewNATSListener(pdfSvc, minioSvc, cfg.DefaultBucket)
+	if err != nil {
+		log.Printf("⚠️ Network Sync Warning: NATS connectivity deferred: %v", err)
+	} else {
+		log.Println("✅ Document Node listening for Marketplace settlements...")
+		go listener.Listen()
+	}
+
 	// Initialize Controllers
 	fileCtrl := controllers.NewFileController(minioSvc, cfg.DefaultBucket)
 

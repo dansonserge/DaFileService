@@ -1,0 +1,31 @@
+# Binaries
+bin/
+supplychain-service
+auth-service
+marketplace-service
+da-file-service
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Dependencies
+vendor/
+
+# Tools
+.air/
+tmp/
+
+# Logs
+*.log
+
+# Databases & local data
+*.db
+*-data/
+
+# OS files
+.DS_Store
+
+# Git
+.git
+.gitignore
