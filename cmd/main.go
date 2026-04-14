@@ -21,7 +21,7 @@ func main() {
 	}
 
 	// Initialize Services
-	pdfSvc := services.NewPDFService(minioSvc)
+	pdfSvc := services.NewPDFService(minioSvc, cfg.AuthServiceURL)
 
 	// Start Background NATS Listener for Marketplace Events
 	listener, err := services.NewNATSListener(pdfSvc, minioSvc, cfg.DefaultBucket)

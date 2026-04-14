@@ -11,6 +11,7 @@ type Config struct {
 	MinioSecretKey string
 	MinioUseSSL    bool
 	DefaultBucket  string
+	AuthServiceURL string
 }
 
 func LoadConfig() *Config {
@@ -21,6 +22,7 @@ func LoadConfig() *Config {
 		MinioSecretKey: getEnv("MINIO_SECRET_KEY", "password"),
 		MinioUseSSL:    getEnv("MINIO_USE_SSL", "false") == "true",
 		DefaultBucket:  getEnv("DEFAULT_BUCKET", "default-storage"),
+		AuthServiceURL: getEnv("AUTH_SERVICE_URL", "http://localhost:8081"),
 	}
 }
 
