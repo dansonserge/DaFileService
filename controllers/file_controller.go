@@ -1,8 +1,12 @@
 package controllers
 
 import (
+	"bytes"
 	"context"
+	_ "embed"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,6 +16,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+//go:embed assets/default.jpg
+var defaultProductPlaceholder []byte
 
 type FileController struct {
 	minioService  *services.MinioService
@@ -73,8 +80,21 @@ func (ctrl *FileController) Download(c *gin.Context) {
 		return
 	}
 
+	// Clean key to remove leading slash
+	key = strings.TrimPrefix(key, "/")
+
 	ctx := context.Background()
 	reader, info, err := ctrl.minioService.DownloadFile(ctx, bucket, key)
+	if err != nil {
+		if bucket == "catalog" && key == "default.jpg" {
+			// Auto-heal: Generate a gorgeous brand-gradient placeholder and save to MinIO
+			if errGen := ctrl.generateAndUploadDefaultPlaceholder(ctx); errGen != nil {
+				log.Printf("ERROR: Failed to auto-generate placeholder: %v", errGen)
+			}
+			// Retry
+			reader, info, err = ctrl.minioService.DownloadFile(ctx, bucket, key)
+		}
+	}
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
 		return
@@ -95,6 +115,22 @@ func (ctrl *FileController) Download(c *gin.Context) {
 	c.Header("Content-Length", strconv.FormatInt(info.Size, 10))
 
 	http.ServeContent(c.Writer, c.Request, key, info.LastModified, reader.(io.ReadSeeker))
+}
+
+// generateAndUploadDefaultPlaceholder uploads the embedded premium medical product placeholder image to MinIO.
+func (ctrl *FileController) generateAndUploadDefaultPlaceholder(ctx context.Context) error {
+	if len(defaultProductPlaceholder) == 0 {
+		return fmt.Errorf("embedded default placeholder image is empty")
+	}
+	
+	return ctrl.minioService.UploadFile(
+		ctx,
+		"catalog",
+		"default.jpg",
+		bytes.NewReader(defaultProductPlaceholder),
+		int64(len(defaultProductPlaceholder)),
+		"image/jpeg",
+	)
 }
 
 // GetPreview generates a temporal presigned URL for secure visualization
